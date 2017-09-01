@@ -28,9 +28,6 @@ module Services
       @user ||= User.find_by team_id: team_id
     end
 
-    # message formatting:
-    # - https://api.slack.com/docs/message-formatting
-    # - https://api.slack.com/docs/message-attachments
     def post(response)
       ::RestClient.post response_url, response.to_json, { content_type: :json }
     end

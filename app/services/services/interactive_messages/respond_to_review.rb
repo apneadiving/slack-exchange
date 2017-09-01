@@ -4,7 +4,19 @@ module Services
 
       def call
         if accepted?
-          post({ text: "OK, accepted by <@#{user_id}>" })
+          ::RestClient.post "https://slack.com/api/chat.postEphemeral", {
+            	token: ENV['ACCESS_TOKEN'] ,
+              channel: channel_id,
+              text: "Hi <@#{user_id}>. Here is the link to PR: #{pull_request_url}",
+              user: user_id
+          }
+          ::RestClient.post "https://slack.com/api/chat.postEphemeral", {
+            	token: ENV['ACCESS_TOKEN'] ,
+              channel: channel_id,
+              text: "Hey <@#{requester_id}, your PR is reviewed by <@#{user_id}>",
+              user: requester_id
+          }
+          #review_request.update(discarded_user_ids: [])
         else
           review_request.update(discarded_user_ids: review_request.discarded_user_ids + [user_id])
 

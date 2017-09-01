@@ -4,16 +4,18 @@ module Services
 
       def call
         find_or_create_review_request
+        #if !review_request.discarded_user_ids.include? user_id
+        #  review_request.update(discarded_user_ids: review_request.discarded_user_ids + [user_id])
+        #end
         reviewer_id = possible_reviewer_ids.sample
 
         if reviewer_id
           review_request.update!({ latest_reviewer_slack_id: reviewer_id })
           post({
-            text: "Would ping <@#{reviewer_id}>",
+            text: "<@#{reviewer_id}> is currently active. Would you like him/her to review?",
             attachments: [
              {
-              text:     "Do you want to confirm?",
-              fallback: "duh",
+              fallback: "Asking about confirmation",
               callback_id: "reviewer_assessment",
               attachment_type: "default",
               actions: [
@@ -49,13 +51,6 @@ module Services
       # buttons: ok, ko  can/cannot do => reroll the review stuff
       # auto-ko is not ok within X minutes
 
-
-      # attr_reader :team_id, :user_id, :args, :response_url, :channel_id
-
-      # message formatting:
-      # - https://api.slack.com/docs/message-formatting
-      # - https://api.slack.com/docs/message-attachments
-      # {response_type: "in_channel"}
       def post(response)
         ::RestClient.post response_url, response.to_json, { content_type: :json }
       end
@@ -67,7 +62,7 @@ module Services
       def find_or_create_review_request
         @review_request = ::ReviewRequest.find_or_create_by(
           slack_user_id:    user_id,
-          pull_request_url: pull_request_url
+          pull_request_url: pull_request_url,
         )
       end
 
@@ -77,7 +72,7 @@ module Services
 
       def all_active_users_ids
         @all_active_users_ids ||= begin
-          response = ::RestClient.post "https://slack.com/api/users.list", { token: user.access_token, presence: true }
+          response = ::RestClient.post "https://slack.com/api/users.list", { token: ENV['ACCESS_TOKEN'], presence: true }
           raise StandardError unless response.code == 200
           members = JSON.parse(response.body)["members"]
 
@@ -96,7 +91,7 @@ module Services
       end
 
       def channel_user_ids
-        response = ::RestClient.post "https://slack.com/api/channels.info", { token: user.access_token, channel: channel_id }
+        response = ::RestClient.post "https://slack.com/api/channels.info", { token: ENV['ACCESS_TOKEN'], channel: channel_id }
         raise StandardError unless response.code == 200
         @channel_info = JSON.parse(response.body)["channel"]["members"]
       end

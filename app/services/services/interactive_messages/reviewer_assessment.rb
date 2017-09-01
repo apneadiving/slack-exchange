@@ -2,38 +2,38 @@ module Services
   module InteractiveMessages
     class ReviewerAssessment < Services::BaseResponse
 
-      def call
 
-        binding.pry
+
+      def call
         if accepted?
-          ::RestClient.post "https://slack.com/api/chat.postMessage", {
-            text:   "Review! <@#{reviewer_slack_id}>",
-            attachments: [
-             {
-              text:     "Do you agree?",
-              fallback: "duh",
-              callback_id: "respond_to_review",
-              attachment_type: "default",
-              actions: [
-                {
-                  name:  "yes",
-                  text:  "Yes",
-                  type:  "button",
-                  value: "yes|#{review_request.id}",
-                  style: "primary"
-                },
-                {
-                  name:  "no",
-                  text:  "No",
-                  type:  "button",
-                  value: "no|#{review_request.id}"
-                }
+          f = ::RestClient.post "https://slack.com/api/chat.postEphemeral", {
+            	token: ENV['ACCESS_TOKEN'] ,
+              channel: channel_id,
+              text: "Hi <@#{reviewer_slack_id}>, are you available to review a piece of code right now?",
+              user: reviewer_slack_id,
+              attachments: [
+               {
+                fallback: "Ask for availability",
+                callback_id: "respond_to_review",
+                attachment_type: "default",
+                actions: [
+                  {
+                    name:  "yes",
+                    text:  "Yes",
+                    type:  "button",
+                    value: "yes|#{review_request.id}",
+                    style: "primary"
+                  },
+                  {
+                    name:  "no",
+                    text:  "No",
+                    type:  "button",
+                    value: "no|#{review_request.id}"
+                  }
               ]
-            }],
-            replace_original: true,
-            token:   user.access_token,
-            channel: channel_id
-          }
+              }
+            ].to_json
+            }, { content_type: :json }
         else
           review_request.update(discarded_user_ids: review_request.discarded_user_ids + [reviewer_slack_id])
 
